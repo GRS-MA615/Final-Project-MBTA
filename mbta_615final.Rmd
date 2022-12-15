@@ -1,0 +1,115 @@
+---
+title: "mbta_615final"
+author: "Danya Zhang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(formatR)
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=70), tidy=TRUE,
+                      warning = FALSE)
+library(dplyr)
+```
+
+```{r}
+#subsetting data to the first week of 2022
+data <- read.csv("/Users/dz/Documents/MSSP/GitHub/MA615 final/Final-Project-MBTA/TravelTimes_2022/2022-Q1_LRTravelTimes.csv")
+df <- as.data.frame(table(data$service_date))
+sum <- sum(df[c(1:7),2]) 
+data <- head(data, sum)
+```
+
+#Getting to know the data
+#Summary Statistics
+```{r}
+#summary statistics 
+stats <- data %>%
+  group_by(from_stop_id, to_stop_id) %>%
+  summarise(max = max(travel_time_sec), min = min(travel_time_sec),
+            mean = mean(travel_time_sec), sd = sd(travel_time_sec))
+head(stats)
+```
+
+#Data Cleaning
+```{r}
+#there some travel times that are clearly impossible. possible data entry error
+short_ind <- data[which(data$travel_time_sec<10),]
+remove_ind <- as.numeric(dimnames(short_ind)[[1]])
+data <- data[-remove_ind,]
+
+#subsetting based on the same from_stop_id, to_stop_id, route_id, direction_id
+subset1 <- data %>%
+  filter(from_stop_id == 70134 &
+           to_stop_id == 170136 &
+           route_id == "Green-B" &
+           direction_id == 1)
+
+#first week of 2022
+subset1 <- as.data.frame(subset1)
+```
+
+#Visualizations
+#Histogram
+```{r}
+#histogram
+hist(subset1$travel_time_sec, xlab = "Travel Time (sec)", 
+main = "Frequency of MBTA travel times")
+```
+
+#Boxplot
+```{r}
+library(ggplot2)
+#boxplot
+subset1 %>%
+ggplot(aes(x = as.Date(service_date), y = travel_time_sec/60, group=service_date)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of travel times", x = "Date (2022)",y = "Travel Time (min)",
+       subtitle = "stop 70134 to stop 170136, greenline-B, direction_id 1") +
+  scale_x_date(date_breaks = "1 day", date_label="%b%d") +
+  theme_bw()
+
+#looks pretty consistent. There are outliers but this could be amounted to 
+#vehicle malfunctions, accidents, emergencies, unruly passengers, etc.
+```
+
+$\textbf{Scatter Plot} \\$
+To see if there is variability between start time and end time based on day of the week, I have selected Sunday and Tuesday to represent th weekend and weekdays.
+```{r}
+subset1_tues <- subset1[which(subset1$service_date=="2022-01-04"),]
+subset1_sun <- subset1[which(subset1$service_date=="2022-01-02"),]
+subset1_suntues <- rbind(subset1_tues, subset1_sun)
+
+ggplot(subset1_suntues, aes(start_time_sec/60/60, end_time_sec/60/60, group=service_date,
+                           color=service_date)) +
+  geom_point() +
+  labs(title = "End Time vs. Start Time", x="Start time (hr)", 
+       y="End time (hr)",subtitle = "stop 70134 to stop 170136, greenline-B, direction_id 1") +
+  guides(color = guide_legend(title = "Service Date")) +
+  theme_bw()
+```
+Scatter plots appear linear and stacked on top of each other. Seems like there is little to no difference, meaning the MBTA is fairly reliable and times between days are consistent.
+
+```{r}
+# library(mapsapi)
+# key <- "AIzaSyBb1P6Czwie4KeT0BAKlHLoCzzUXRh9qyA"
+# 
+# #580 to prudential
+# doc <- mp_directions(origin = "Boston University",
+#                      destination = "Newbury Street",
+#                      alternatives = TRUE,
+#                      key = key,
+#                      quiet = TRUE)
+# 
+# r <- mp_get_routes(doc)
+# 
+# #map visualization
+# library(leaflet)
+# pal <- colorFactor(palette = "Dark2", domain = r$alternative_id)
+# leaflet() %>% 
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolylines(data = r, opacity = 1, weight = 7, color = ~pal(alternative_id))
+```
+
+
+
