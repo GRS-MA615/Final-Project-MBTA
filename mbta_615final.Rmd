@@ -7,11 +7,25 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 library(formatR)
-knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=70), tidy=TRUE,
+knitr::opts_chunk$set(echo = FALSE, tidy.opts=list(width.cutoff=70), tidy=TRUE,
                       warning = FALSE)
 library(dplyr)
 ```
 
+\normalsize The MBTA, more commonly known as the "T" by locals, is the first 
+\normalsize subway system ever implemented in the United States. It was voted 
+\normalsize into law in 1964, serving the greater Boston area. Some time later, 
+\normalsize a consulting firm was hired to consolidate the various transit lines; 
+\normalsize it was then that the MBTA system became as we know it today with the 
+\normalsize color-coded lines. 
+$\\$
+$\\$
+\normalsize In this report, we would like to examine the the reliability of the MBTA
+\normalsize system using statistics and visualizations to see if departure and 
+\normalsize arrival times are accurate. Let's first read in the data. To make it 
+\normalsize easier, since the data is quite large, we will work with a subset 
+\normalsize of the data which represents a week of data.
+$\\$
 ```{r}
 #subsetting data to the first week of 2022
 data <- read.csv("/Users/dz/Documents/MSSP/GitHub/MA615 final/Final-Project-MBTA/TravelTimes_2022/2022-Q1_LRTravelTimes.csv")
@@ -20,8 +34,13 @@ sum <- sum(df[c(1:7),2])
 data <- head(data, sum)
 ```
 
-#Getting to know the data
-#Summary Statistics
+\Large Getting to know the data
+$\\$
+$\\$
+\large Summary Statistics
+$\\$
+$\\$
+\normalsize Let's look at some summary statistics of the data.
 ```{r}
 #summary statistics 
 stats <- data %>%
@@ -31,9 +50,16 @@ stats <- data %>%
 head(stats)
 ```
 
-#Data Cleaning
-```{r}
-#there some travel times that are clearly impossible. possible data entry error
+\normalsize There were some travel times that are clearly impossible, perhaps 
+\normalsize due to a data entry error. So we will delete any observations with 
+\normalsize less than a 10 second travel time. For the visualizations, we will 
+\normalsize further subset the data to a single from_stop_id, to_stop_id, 
+\normalsize direction_id, route_id, and direction_id (subset1). 
+$\\$
+$\\$
+\large Data Cleaning
+```{r, echo=TRUE}
+#some travel times that are clearly impossible. possible data entry error
 short_ind <- data[which(data$travel_time_sec<10),]
 remove_ind <- as.numeric(dimnames(short_ind)[[1]])
 data <- data[-remove_ind,]
@@ -49,16 +75,25 @@ subset1 <- data %>%
 subset1 <- as.data.frame(subset1)
 ```
 
-#Visualizations
-#Histogram
-```{r}
+\normalsize Now, let's visualize the data using some graphs. $\\$
+$\\$
+\Large Visualizations
+$\\$
+$\\$
+\large Histogram
+```{r, echo=FALSE}
 #histogram
 hist(subset1$travel_time_sec, xlab = "Travel Time (sec)", 
 main = "Frequency of MBTA travel times")
 ```
+$\\$
+\normalsize Aside from the very few outliers, the histogram is otherwise fairly 
+\normalsize bell-shaped. This suggest that travel times are roughly Gaussian 
+\normalsize and the MBTA travel times between the two stops are fairly quick. 
+$\\$
 
-#Boxplot
-```{r}
+\large Boxplot
+```{r, echo=FALSE}
 library(ggplot2)
 #boxplot
 subset1 %>%
@@ -72,10 +107,21 @@ ggplot(aes(x = as.Date(service_date), y = travel_time_sec/60, group=service_date
 #looks pretty consistent. There are outliers but this could be amounted to 
 #vehicle malfunctions, accidents, emergencies, unruly passengers, etc.
 ```
+\normalsize As the box plots are roughly on the same horizontal level as each 
+\normalsize other, there seems to be little to no variation. Ignoring the outliers, 
+\normalsize the medians, 25% quantile and 75% quantile are at roughly the same 
+\normalsize level. This is good as it means the Greenline-B is very consistent 
+\normalsize with travel times.
 
-$\textbf{Scatter Plot} \\$
-To see if there is variability between start time and end time based on day of the week, I have selected Sunday and Tuesday to represent th weekend and weekdays.
-```{r}
+$\\$
+\large Scatter plot
+$\\$
+\normalsize Now, let's use a scatter plot to explore possible variation between 
+\normalsize two extremes. Here I have selected two very different days in terms 
+\normalsize of passenger traffic: Sunday and Tuesday. Let's see if there is a 
+\normalsize difference between weekdays and weekends.
+$\\$
+```{r, echo=FALSE}
 subset1_tues <- subset1[which(subset1$service_date=="2022-01-04"),]
 subset1_sun <- subset1[which(subset1$service_date=="2022-01-02"),]
 subset1_suntues <- rbind(subset1_tues, subset1_sun)
@@ -88,9 +134,50 @@ ggplot(subset1_suntues, aes(start_time_sec/60/60, end_time_sec/60/60, group=serv
   guides(color = guide_legend(title = "Service Date")) +
   theme_bw()
 ```
-Scatter plots appear linear and stacked on top of each other. Seems like there is little to no difference, meaning the MBTA is fairly reliable and times between days are consistent.
+\normalsize Scatter plots appear linear and stacked on top of each other, which 
+\normalsize means start and end times are consistent between days, meaning the  
+\normalsize MBTA is fairly reliable.
+$\\$
+$\\$
 
+\Large Hypotheses Tests 
+$\\$
+$\\$
+\normalsize Moving on to the hypotheses tests, we'd like to use some statistical 
+\normalsize tests to see if MBTA travel times are reliable and consistent.
+$\\$
+$\\$
+\large Anova test 
+$\\$
+\normalsize Let's start with an ANOVA test. Our null and alternative hypotheses 
+\normalsize are as follows: 
+$\\$ $\\$
+$H_0 =$ there are no significant differences in travel times $\\$
+$H_1$ = there are significant differences in travel times
 ```{r}
+
+library(rstatix)
+anova <- data %>% anova_test(travel_time_sec ~ service_date)
+anova
+```
+\normalsize The p-value for the anova test is very small this shows that 
+\normalsize we reject our null hypotheses, meaning that there are significant
+\normalsize differences in travel times. This might be surprising considering
+\normalsize the graphs above did not show this. However, it is very important to know
+\normalsize that p-values do not represent a definitive answer. Let's consider 
+\normalsize another type of test: the paired t-test. $\\$
+
+\large Paired T-test
+```{r}
+paired <- data %>%
+  pairwise_t_test(travel_time_sec ~ service_date, p.adjust.method = "bonferroni")
+summary(paired)
+paired
+```
+
+$\\$
+```{r}
+#some demo code for r shiny application
 # library(mapsapi)
 # key <- "AIzaSyBb1P6Czwie4KeT0BAKlHLoCzzUXRh9qyA"
 # 
@@ -99,14 +186,15 @@ Scatter plots appear linear and stacked on top of each other. Seems like there i
 #                      destination = "Newbury Street",
 #                      alternatives = TRUE,
 #                      key = key,
-#                      quiet = TRUE)
+#                      quiet = TRUE,
+#                      transit_mode = c("bus", "subway"))
 # 
 # r <- mp_get_routes(doc)
 # 
 # #map visualization
 # library(leaflet)
 # pal <- colorFactor(palette = "Dark2", domain = r$alternative_id)
-# leaflet() %>% 
+# leaflet() %>%
 #   addProviderTiles("CartoDB.DarkMatter") %>%
 #   addPolylines(data = r, opacity = 1, weight = 7, color = ~pal(alternative_id))
 ```
