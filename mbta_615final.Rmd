@@ -17,7 +17,10 @@ library(dplyr)
 \normalsize into law in 1964, serving the greater Boston area. Some time later, 
 \normalsize a consulting firm was hired to consolidate the various transit lines; 
 \normalsize it was then that the MBTA system became as we know it today with the 
-\normalsize color-coded lines. 
+\normalsize color-coded lines. The data for this report can be downloaded
+\normalsize here: 
+\normalsize https://mbta-massdot.opendata.arcgis.com/datasets/mbta-travel-times-2022/about
+\normalsize For this report, I've selected the Q1 LR dataset.
 $\\$
 $\\$
 \normalsize In this report, we would like to examine the the reliability of the MBTA
@@ -169,11 +172,31 @@ anova
 
 \large Paired T-test
 ```{r}
-paired <- data %>%
-  pairwise_t_test(travel_time_sec ~ service_date, p.adjust.method = "bonferroni")
-summary(paired)
-paired
+ttest <- t_test(data=subset1_suntues,travel_time_sec ~ service_date)
+ttest2 <- t_test(data=subset1_suntues, start_time_sec ~ service_date)
+ttest3 <- t_test(data=subset1_suntues, end_time_sec ~ service_date)
+ttest
+ttest2
+ttest3
 ```
+
+\normalsize The paired t-test above compares travel times, start times, and end,
+\normalsize times between Sunday and Tuesday. We'd like to discern whether these
+\normalsize variables differ based on days. The alternate and null 
+\normalsize hypotheses remain the same as above. Looking at the results, it seems \normalsize that only the first test for travel time rejects the null 
+\normalsize but only at a 0.1 significance level; the other two tests for start
+\normalsize time and end time fail to reject the null at a 0.01, 0.05, and 0.1 
+\normalsize level, therefore we can make a general conclusion that there is \normalsize little to no difference between days and the MBTA is fairly \normalsize consistent with minor variation in travel times. 
+$\\$
+
+\normalsize This concludes our report on the reliability of the MBTA greenline.
+\normalsize It appears that the overall, the greenline is fairly reliable.
+\normalsize From personal experience, as someone who has gone to school in \normalsize Boston for four years, the MBTA's senescence is obvious. It's
+\normalsize quite slow and loud, at least the subway is. A part of me would
+\normalsize like to rebute the fact that the greenline is reliable, however
+\normalsize the predictive LCD screens around the city are accurate to say the 
+\normalsize least. Overall, the MBTA greenline is fairly reliable. 
+
 
 $\\$
 ```{r}
